@@ -3,11 +3,13 @@
 #include <cinttypes>
 #include <cstring>
 
-#define BTABLE_FIELD_LIST_OFFSET 24
-
 class BTable
 {
 public:
+
+	static constexpr uint32_t magic[] = { 0x42, 0x54, 0x42, 0x4C };
+	static constexpr uint32_t field_list_offset = 16;
+
 	enum DataType
 	{
 		INT8 = 0,
@@ -19,6 +21,18 @@ public:
 		STRING
 	};
 
+	enum Endianness : uint8_t
+	{
+		Big = 0,
+		Little = 255
+	};
+
+	enum Options : uint8_t
+	{
+		HasStringTable = 0,
+		Endianness = 1
+	};
+
 	struct FieldData
 	{
 		const char* name;
@@ -28,13 +42,12 @@ public:
 
 	struct Header
 	{
-		uint32_t magic;
+		uint8_t magic[4];
 		uint32_t numFields;
 		uint32_t numEntries;
-		uint32_t dataOffset;
+		uint16_t dataOffset;
+		uint8_t options;
 		uint8_t fieldNameLength; // If zero, field names are hashes, otherwise field names are byte arrays
-		uint8_t hasStringTable;
-		uint8_t endianness; // ?
 	};
 
 	struct FieldListEntry
@@ -60,7 +73,7 @@ public:
 		}
 	}
 
-	static constexpr int getPadding(int block_size, int alignment)
+	static constexpr int getPadding(unsigned int block_size, unsigned int alignment)
 	{
 		return (alignment - block_size % alignment) % alignment;
 	}
@@ -79,27 +92,32 @@ public:
 
 	static uint32_t calculateBufferSize(const FieldData* fields, uint32_t numFields, uint32_t numEntries)
 	{
+		if(!fields)
+		{
+			return 16;
+		}
 		uint32_t bytesPerEntry = 0;
 		for (int i = 0; i < numFields; i++)
 		{
-			bytesPerEntry += getDatatypeSize(fields[i].dataType) * fields[i].arraySize;
+			bytesPerEntry += getDatatypeSize(fields[i].dataType) * (fields[i].arraySize == 0 ? 1 : fields[i].arraySize);
 		}
-		return bytesPerEntry * numEntries;
+		int padding = numFields % 2 == 0 ? 0 : 4; // Padding after field list
+		return bytesPerEntry * numEntries + 16 + 12 * numFields + padding;
 	}
-
-	static constexpr uint32_t magic = 0x4254424C;
 
 	BTable(void* buffer, const FieldData* fields, uint32_t numFields, uint32_t numEntries)
 	{
 		bufferPtr = (int8_t*)buffer;
 
 		Header* header = getHeader();
-		header->magic = magic;
+		header->magic[0] = magic[0];
+		header->magic[1] = magic[1];
+		header->magic[2] = magic[2];
+		header->magic[3] = magic[3];
 		header->numFields = numFields;
 		header->numEntries = numEntries;
-		header->hasStringTable = 0; // Not implemented
+		header->options = 0;
 		header->fieldNameLength = 0; // String field names not implemented
-		header->endianness = 0; // ?
 
 		uint32_t offset = 0;
 		FieldListEntry* fieldList = getFieldList();
@@ -109,11 +127,15 @@ public:
 			fieldList[i].offset = offset;
 			fieldList[i].dataType = fields[i].dataType;
 			fieldList[i].arraySize = fields[i].arraySize;
+			if(fieldList[i].arraySize == 0)
+			{
+				fieldList[i].arraySize = 1;
+			}
 
 			offset += getDatatypeSize(fields[i].dataType) * fields[i].arraySize * getNumEntries();
 		}
 
-		unsigned int bytesWritten = BTABLE_FIELD_LIST_OFFSET + sizeof(FieldListEntry) * numFields;
+		unsigned int bytesWritten = field_list_offset + sizeof(FieldListEntry) * numFields;
 		header->dataOffset = bytesWritten + getPadding(bytesWritten, 8);
 	}
 
@@ -129,7 +151,7 @@ public:
 
 	FieldListEntry* getFieldList()
 	{
-		return (FieldListEntry*)(bufferPtr + BTABLE_FIELD_LIST_OFFSET);
+		return (FieldListEntry*)(bufferPtr + field_list_offset);
 	}
 
 	int8_t* getDataSection()
@@ -172,64 +194,28 @@ public:
 		return (uint32_t)-1;
 	}
 
-	class BTableValue
-	{
-	public:
-		explicit BTableValue(void* valuePtr) : m_valuePtr(valuePtr)
-		{
-		}
-
-		int8_t toInt8() const
-		{
-			return *(int8_t*)m_valuePtr;
-		}
-
-	private:
-		void* m_valuePtr;
-
-		friend BTable;
-	};
-
-	class BTableValueArray
-	{
-	public:
-		explicit BTableValueArray(void* valuePtr) : m_valuePtr(valuePtr)
-		{
-		}
-
-		int8_t* toInt8Array() const
-		{
-			return (int8_t*)m_valuePtr;
-		}
-
-	private:
-		void* m_valuePtr;
-
-		friend BTable;
-	};
-
 	// --- Generic getters ---
 
-	BTableValue getEntry(const FieldListEntry* field, uint32_t entry)
+	void* getEntry(const FieldListEntry* field, uint32_t entry)
 	{
-		return BTableValue(getValuePtr(field, entry));
+		return getValuePtr(field, entry);
 	}
 
-	BTableValue getEntry(const FieldListEntry* field, uint32_t entry) const
+	void* getEntry(const FieldListEntry* field, uint32_t entry) const
 	{
-		return BTableValue(getValuePtr(field, entry));
+		return getValuePtr(field, entry);
 	}
 
-	BTableValueArray getEntries(const FieldListEntry* field)
+	void* getEntries(const FieldListEntry* field)
 	{
 		// error check if field is an array?
-		return BTableValueArray(bufferPtr + field->offset);
+		return bufferPtr + field->offset;
 	}
 
-	BTableValueArray getEntries(const FieldListEntry* field) const
+	void* getEntries(const FieldListEntry* field) const
 	{
 		// error check if field is an array?
-		return BTableValueArray(bufferPtr + field->offset);
+		return bufferPtr + field->offset;
 	}
 
 	// --- Generic setters ---
@@ -237,7 +223,7 @@ public:
 	// sets the array of an entry
 	void setArray(const FieldListEntry* field, uint32_t entry, void* srcArray, uint32_t n)
 	{
-		void* startPtr = getEntry(field, entry).m_valuePtr;
+		void* startPtr = getEntry(field, entry);
 		memcpy_s(startPtr, field->arraySize, srcArray, n);
 	}
 
@@ -245,7 +231,7 @@ public:
 	void setEntries(const FieldListEntry* field, uint32_t startEntry, void* srcArray, uint32_t n)
 	{
 		// check if arraySize is != 1 and throw error
-		void* startPtr = (int8_t*)getEntries(field).m_valuePtr + startEntry;
+		void* startPtr = (int8_t*)getEntries(field) + startEntry;
 		memcpy_s(startPtr, getNumEntries() - startEntry, srcArray, n);
 	}
 
@@ -255,7 +241,14 @@ public:
 	void setValueInt8(const FieldListEntry* field, uint32_t entry, uint8_t value)
 	{
 		// check if arraySize is != 1 and throw error
-		*(uint8_t*)getEntry(field, entry).m_valuePtr = value;
+		*(uint8_t*)getEntry(field, entry) = value;
+	}
+
+/* -------------------------- Type specific getters ------------------------- */
+
+	int8_t getEntryInt8(const FieldListEntry* field, uint32_t entry) const
+	{
+		return *(uint8_t*)getEntry(field, entry);
 	}
 
 private:
