@@ -105,10 +105,13 @@ public:
 		return bytesPerEntry * numEntries + 16 + 12 * numFields + padding;
 	}
 
-	BTable(void* buffer, const FieldData* fields, uint32_t numFields, uint32_t numEntries)
+	BTable(void* buffer) : bufferPtr((int8_t*)buffer)
 	{
-		bufferPtr = (int8_t*)buffer;
+		
+	}
 
+	void init(const FieldData* fields, uint32_t numFields, uint32_t numEntries)
+	{
 		Header* header = getHeader();
 		header->magic[0] = magic[0];
 		header->magic[1] = magic[1];
