@@ -209,13 +209,13 @@ public:
 	void* getEntries(const FieldListEntry* field)
 	{
 		// error check if field is an array?
-		return bufferPtr + field->offset;
+		return bufferPtr + getHeader()->dataOffset + field->offset;
 	}
 
 	void* getEntries(const FieldListEntry* field) const
 	{
 		// error check if field is an array?
-		return bufferPtr + field->offset;
+		return bufferPtr + getHeader()->dataOffset + field->offset;
 	}
 
 	// --- Generic setters ---
@@ -254,7 +254,7 @@ public:
 private:
 	void* getValuePtr(const FieldListEntry* field, uint32_t entry) const
 	{
-		return bufferPtr + field->offset + getDatatypeSize((DataType)field->dataType) * field->arraySize * entry;
+		return bufferPtr + getHeader()->dataOffset + field->offset + getDatatypeSize((DataType)field->dataType) * field->arraySize * entry;
 	}
 
 	int8_t* bufferPtr;
