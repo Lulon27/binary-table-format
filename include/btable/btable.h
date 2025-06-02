@@ -53,7 +53,7 @@ public:
 
 	struct FieldListEntry
 	{
-		uint32_t offset; // Offset from start of buffer
+		uint32_t offset; // Offset from start of data section
 		uint16_t name; // Hash or string table index
 		uint8_t dataType;
 		uint8_t arraySize;
@@ -254,7 +254,8 @@ public:
 
 	int8_t getValueInt8Array(const FieldListEntry* field, uint32_t entry, uint16_t index) const
 	{
-		return *(uint8_t*)getEntry(field, entry);
+		// TODO: add error checking
+		return ((uint8_t*)getEntry(field, entry))[index];
 	}
 
 private:
