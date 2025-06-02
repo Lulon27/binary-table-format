@@ -9,6 +9,7 @@ public:
 
 	static constexpr uint32_t magic[] = { 0x42, 0x54, 0x42, 0x4C };
 	static constexpr uint32_t field_list_offset = 16;
+	static constexpr uint32_t field_entry_size = 8;
 
 	enum DataType
 	{
@@ -52,10 +53,10 @@ public:
 
 	struct FieldListEntry
 	{
-		uint32_t name; // Hash or string table index
 		uint32_t offset; // Offset from start of buffer
-		uint16_t arraySize;
+		uint16_t name; // Hash or string table index
 		uint8_t dataType;
+		uint8_t arraySize;
 	};
 
 	static unsigned int getDatatypeSize(enum DataType dataType)
@@ -78,9 +79,9 @@ public:
 		return (alignment - block_size % alignment) % alignment;
 	}
 
-	static uint32_t hash(const char* str)
+	static uint16_t hash(const char* str)
 	{
-		uint32_t ret = 0;
+		uint16_t ret = 0;
 		while (*str != 0)
 		{
 			ret *= 0x1F;
@@ -101,8 +102,7 @@ public:
 		{
 			bytesPerEntry += getDatatypeSize(fields[i].dataType) * (fields[i].arraySize == 0 ? 1 : fields[i].arraySize);
 		}
-		int padding = numFields % 2 == 0 ? 0 : 4; // Padding after field list
-		return bytesPerEntry * numEntries + 16 + 12 * numFields + padding;
+		return bytesPerEntry * numEntries + 16 + 8 * numFields;
 	}
 
 	BTable(void* buffer) : bufferPtr((int8_t*)buffer)
@@ -126,8 +126,8 @@ public:
 		FieldListEntry* fieldList = getFieldList();
 		for (int i = 0; i < header->numFields; i++)
 		{
-			fieldList[i].name = hash(fields[i].name); // Hash
 			fieldList[i].offset = offset;
+			fieldList[i].name = hash(fields[i].name); // Hash
 			fieldList[i].dataType = fields[i].dataType;
 			fieldList[i].arraySize = fields[i].arraySize;
 			if(fieldList[i].arraySize == 0)
@@ -221,23 +221,6 @@ public:
 		return bufferPtr + getHeader()->dataOffset + field->offset;
 	}
 
-	// --- Generic setters ---
-
-	// sets the array of an entry
-	void setArray(const FieldListEntry* field, uint32_t entry, void* srcArray, uint32_t n)
-	{
-		void* startPtr = getEntry(field, entry);
-		memcpy_s(startPtr, field->arraySize, srcArray, n);
-	}
-
-	// sets every entry in a column. only for single values, not arrays
-	void setEntries(const FieldListEntry* field, uint32_t startEntry, void* srcArray, uint32_t n)
-	{
-		// check if arraySize is != 1 and throw error
-		void* startPtr = (int8_t*)getEntries(field) + startEntry;
-		memcpy_s(startPtr, getNumEntries() - startEntry, srcArray, n);
-	}
-
 /* -------------------------- Type specific setters ------------------------- */
 
 	// sets only a single value
@@ -247,9 +230,29 @@ public:
 		*(uint8_t*)getEntry(field, entry) = value;
 	}
 
+	// sets the array of an entry
+	void setArrayInt8(const FieldListEntry* field, uint32_t entry, int8_t* srcArray, uint32_t n)
+	{
+		void* startPtr = getEntry(field, entry);
+		memcpy_s(startPtr, field->arraySize, srcArray, n);
+	}
+
+	// sets every entry in a column. only for single values, not arrays
+	void setEntries(const FieldListEntry* field, uint32_t startEntry, int8_t* srcArray, uint32_t n)
+	{
+		// check if arraySize is != 1 and throw error
+		void* startPtr = (int8_t*)getEntries(field) + startEntry;
+		memcpy_s(startPtr, getNumEntries() - startEntry, srcArray, n);
+	}
+
 /* -------------------------- Type specific getters ------------------------- */
 
-	int8_t getEntryInt8(const FieldListEntry* field, uint32_t entry) const
+	int8_t getValueInt8(const FieldListEntry* field, uint32_t entry) const
+	{
+		return *(uint8_t*)getEntry(field, entry);
+	}
+
+	int8_t getValueInt8Array(const FieldListEntry* field, uint32_t entry, uint16_t index) const
 	{
 		return *(uint8_t*)getEntry(field, entry);
 	}
