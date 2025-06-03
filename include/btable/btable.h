@@ -142,6 +142,19 @@ public:
 		header->dataOffset = bytesWritten + getPadding(bytesWritten, 8);
 	}
 
+	bool validate() const
+	{
+		Header* header = getHeader();
+		if(header->magic[0] != magic[0] ||
+		   header->magic[1] != magic[1] ||
+		   header->magic[2] != magic[2] ||
+		   header->magic[3] != magic[3])
+		{
+			return false;
+		}
+		return true;
+	}
+
 	Header* getHeader()
 	{
 		return (Header*)bufferPtr;
