@@ -233,6 +233,7 @@ public:
 	// sets the array of an entry
 	void setArrayInt8(const FieldListEntry* field, uint32_t entry, int8_t* srcArray, uint32_t n)
 	{
+		// Add error handling of dest size < src size
 		void* startPtr = getEntry(field, entry);
 		memcpy_s(startPtr, field->arraySize, srcArray, n);
 	}

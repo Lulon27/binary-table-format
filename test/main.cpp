@@ -415,3 +415,44 @@ TEST(BTableTest, GetEntries)
 	EXPECT_EQ(t.getEntries(t.getField((uint32_t)0)), (void*)(buffer + 16 + BTable::field_entry_size * 2));
 	EXPECT_EQ(t.getEntries(t.getField((uint32_t)1)), (void*)(buffer + 16 + BTable::field_entry_size * 2 + 4));
 }
+
+TEST(BTableTest, GetSetValueInt8)
+{
+	uint8_t buffer[128];
+	BTable::FieldData fields[1];
+
+	fields[0].name = "";
+	fields[0].arraySize = 1;
+	fields[0].dataType = BTable::DataType::INT8;
+
+	BTable t(buffer);
+	t.init(fields, 1, 1);
+	t.setValueInt8(t.getField((uint32_t)0), 0, 75);
+	
+	ASSERT_EQ(75, *(uint8_t*)(buffer + 16 + BTable::field_entry_size));
+	ASSERT_EQ(75, t.getValueInt8(t.getField((uint32_t)0), 0));
+}
+
+TEST(BTableTest, GetSetArrayInt8)
+{
+	uint8_t buffer[128];
+	BTable::FieldData fields[1];
+
+	fields[0].name = "";
+	fields[0].arraySize = 3;
+	fields[0].dataType = BTable::DataType::INT8;
+
+	int8_t srcArray[3] = {11, 12, 13};
+
+	BTable t(buffer);
+	t.init(fields, 1, 1);
+	t.setArrayInt8(t.getField((uint32_t)0), 0, srcArray, 3);
+	
+	ASSERT_EQ(11, *(uint8_t*)(buffer + 16 + BTable::field_entry_size));
+	ASSERT_EQ(12, *(uint8_t*)(buffer + 16 + BTable::field_entry_size + 1));
+	ASSERT_EQ(13, *(uint8_t*)(buffer + 16 + BTable::field_entry_size + 2));
+
+	ASSERT_EQ(11, t.getValueInt8Array(t.getField((uint32_t)0), 0, 0));
+	ASSERT_EQ(12, t.getValueInt8Array(t.getField((uint32_t)0), 0, 1));
+	ASSERT_EQ(13, t.getValueInt8Array(t.getField((uint32_t)0), 0, 2));
+}
