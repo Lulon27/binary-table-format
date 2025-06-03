@@ -11,6 +11,44 @@ public:
 	static constexpr uint32_t field_list_offset = 16;
 	static constexpr uint32_t field_entry_size = 8;
 
+	static bool isLittleEndianCpu()
+	{
+		static uint32_t i = 1;
+		return *(uint8_t*)&i == 1;
+	}
+
+	static inline bool is_little_endian_cpu = isLittleEndianCpu();
+
+	static uint16_t byteswap16(uint16_t x)
+	{
+		return ((x << 8) & 0xFF00) | ((x >> 8) & 0xFF);
+	}
+
+	static uint32_t byteswap32(uint32_t x)
+	{
+		return ((x >> 24) & 0xFF) | ((x << 8) & 0xFF0000) | ((x >> 8) & 0xFF00) | ((x << 24) & 0xFF000000);
+	}
+
+	static uint32_t be32_to_cpu(uint32_t x)
+	{
+		return is_little_endian_cpu ? byteswap32(x) : x;
+	}
+
+	static uint16_t be16_to_cpu(uint16_t x)
+	{
+		return is_little_endian_cpu ? byteswap16(x) : x;
+	}
+
+	static uint32_t cpu_to_be32(uint32_t x)
+	{
+		return is_little_endian_cpu ? byteswap32(x) : x;
+	}
+
+	static uint16_t cpu_to_be16(uint16_t x)
+	{
+		return is_little_endian_cpu ? byteswap16(x) : x;
+	}
+
 	enum DataType
 	{
 		INT8 = 0,
@@ -117,17 +155,17 @@ public:
 		header->magic[1] = magic[1];
 		header->magic[2] = magic[2];
 		header->magic[3] = magic[3];
-		header->numFields = numFields;
-		header->numEntries = numEntries;
+		header->numFields = cpu_to_be32(numFields);
+		header->numEntries = cpu_to_be32(numEntries);
 		header->options = 0;
 		header->fieldNameLength = 0; // String field names not implemented
 
 		uint32_t offset = 0;
 		FieldListEntry* fieldList = getFieldList();
-		for (int i = 0; i < header->numFields; i++)
+		for (int i = 0; i < numFields; i++)
 		{
-			fieldList[i].offset = offset;
-			fieldList[i].name = hash(fields[i].name); // Hash
+			fieldList[i].offset = cpu_to_be32(offset);
+			fieldList[i].name = cpu_to_be16(hash(fields[i].name)); // Hash
 			fieldList[i].dataType = fields[i].dataType;
 			fieldList[i].arraySize = fields[i].arraySize;
 			if(fieldList[i].arraySize == 0)
@@ -135,11 +173,11 @@ public:
 				fieldList[i].arraySize = 1;
 			}
 
-			offset += getDatatypeSize(fields[i].dataType) * fields[i].arraySize * getNumEntries();
+			offset += getDatatypeSize(fields[i].dataType) * fields[i].arraySize * numEntries;
 		}
 
 		unsigned int bytesWritten = field_list_offset + sizeof(FieldListEntry) * numFields;
-		header->dataOffset = bytesWritten + getPadding(bytesWritten, 8);
+		header->dataOffset = cpu_to_be16(bytesWritten + getPadding(bytesWritten, 8));
 	}
 
 	bool validate() const
@@ -172,17 +210,17 @@ public:
 
 	int8_t* getDataSection()
 	{
-		return bufferPtr + getHeader()->dataOffset;
+		return bufferPtr + be16_to_cpu(getHeader()->dataOffset);
 	}
 
 	uint32_t getNumEntries() const
 	{
-		return getHeader()->numEntries;
+		return be32_to_cpu(getHeader()->numEntries);
 	}
 
 	uint32_t getNumFields() const
 	{
-		return getHeader()->numFields;
+		return be32_to_cpu(getHeader()->numFields);
 	}
 
 	FieldListEntry* getField(uint32_t fieldIndex)
@@ -197,10 +235,11 @@ public:
 
 	uint32_t getFieldIndex(const char* fieldName)
 	{
-		uint32_t hash = this->hash(fieldName);
+		uint16_t hash = cpu_to_be16(this->hash(fieldName));
 		const Header* header = getHeader();
 		const FieldListEntry* fieldList = getFieldList();
-		for (int i = 0; i < header->numFields; i++)
+		uint32_t numFields = getNumFields();
+		for (int i = 0; i < numFields; i++)
 		{
 			if (fieldList[i].name == hash)
 			{
@@ -225,13 +264,13 @@ public:
 	void* getEntries(const FieldListEntry* field)
 	{
 		// error check if field is an array?
-		return bufferPtr + getHeader()->dataOffset + field->offset;
+		return bufferPtr + be16_to_cpu(getHeader()->dataOffset) + be32_to_cpu(field->offset);
 	}
 
 	void* getEntries(const FieldListEntry* field) const
 	{
 		// error check if field is an array?
-		return bufferPtr + getHeader()->dataOffset + field->offset;
+		return bufferPtr + be16_to_cpu(getHeader()->dataOffset) + be32_to_cpu(field->offset);
 	}
 
 /* -------------------------- Type specific setters ------------------------- */
@@ -275,7 +314,7 @@ public:
 private:
 	void* getValuePtr(const FieldListEntry* field, uint32_t entry) const
 	{
-		return bufferPtr + getHeader()->dataOffset + field->offset + getDatatypeSize((DataType)field->dataType) * field->arraySize * entry;
+		return bufferPtr + be16_to_cpu(getHeader()->dataOffset) + be32_to_cpu(field->offset) + getDatatypeSize((DataType)field->dataType) * field->arraySize * entry;
 	}
 
 	int8_t* bufferPtr;
