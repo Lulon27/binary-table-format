@@ -3,7 +3,8 @@
 #include <cinttypes>
 #include <cstring>
 
-class BTable
+template <typename T>
+class BTableGeneric
 {
 public:
 
@@ -143,7 +144,7 @@ public:
 		return bytesPerEntry * numEntries + 16 + 8 * numFields;
 	}
 
-	BTable(void* buffer) : bufferPtr((int8_t*)buffer)
+	BTableGeneric(T buffer) : bufferPtr(buffer)
 	{
 		
 	}
@@ -208,6 +209,11 @@ public:
 		return (FieldListEntry*)(bufferPtr + field_list_offset);
 	}
 
+	const FieldListEntry* getFieldList() const
+	{
+		return (const FieldListEntry*)(bufferPtr + field_list_offset);
+	}
+
 	int8_t* getDataSection()
 	{
 		return bufferPtr + be16_to_cpu(getHeader()->dataOffset);
@@ -223,17 +229,17 @@ public:
 		return be32_to_cpu(getHeader()->numFields);
 	}
 
-	FieldListEntry* getField(uint32_t fieldIndex)
+	const FieldListEntry* getField(uint32_t fieldIndex) const
 	{
 		return &getFieldList()[fieldIndex];
 	}
 
-	FieldListEntry* getField(const char* fieldName)
+	const FieldListEntry* getField(const char* fieldName) const
 	{
 		return &getFieldList()[getFieldIndex(fieldName)];
 	}
 
-	uint32_t getFieldIndex(const char* fieldName)
+	uint32_t getFieldIndex(const char* fieldName) const
 	{
 		uint16_t hash = cpu_to_be16(this->hash(fieldName));
 		const FieldListEntry* fieldList = getFieldList();
@@ -255,7 +261,7 @@ public:
 		return getValuePtr(field, entry);
 	}
 
-	void* getEntry(const FieldListEntry* field, uint32_t entry) const
+	const void* getEntry(const FieldListEntry* field, uint32_t entry) const
 	{
 		return getValuePtr(field, entry);
 	}
@@ -320,10 +326,18 @@ public:
 	}
 
 private:
-	void* getValuePtr(const FieldListEntry* field, uint32_t entry) const
+	void* getValuePtr(const FieldListEntry* field, uint32_t entry)
 	{
 		return bufferPtr + be16_to_cpu(getHeader()->dataOffset) + be32_to_cpu(field->offset) + getDatatypeSize((DataType)field->dataType) * field->arraySize * entry;
 	}
 
-	int8_t* bufferPtr;
+	const void* getValuePtr(const FieldListEntry* field, uint32_t entry) const
+	{
+		return bufferPtr + be16_to_cpu(getHeader()->dataOffset) + be32_to_cpu(field->offset) + getDatatypeSize((DataType)field->dataType) * field->arraySize * entry;
+	}
+
+	T bufferPtr;
 };
+
+typedef BTableGeneric<unsigned char*> BTable;
+typedef BTableGeneric<const unsigned char*> BTableReadOnly;
