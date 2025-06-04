@@ -145,7 +145,7 @@ public:
 		return bytesPerEntry * numEntries + 16 + 8 * numFields;
 	}
 
-	BTableGeneric(T buffer) : bufferPtr(buffer)
+	BTableGeneric(T buffer, uint32_t size) : bufferPtr(buffer), m_size(size)
 	{
 		
 	}
@@ -157,10 +157,12 @@ public:
 		header->magic[1] = magic[1];
 		header->magic[2] = magic[2];
 		header->magic[3] = magic[3];
-		header->numFields = cpu_to_be16(numFields);
 		header->numEntries = cpu_to_be32(numEntries);
+		header->numFields = cpu_to_be16(numFields);
 		header->options = 0;
 		header->fieldNameLength = 0; // String field names not implemented
+		header->userData[0] = 0;
+		header->userData[1] = 0;
 
 		uint32_t offset = 0;
 		FieldListEntry* fieldList = getFieldList();
@@ -185,6 +187,12 @@ public:
 	bool validate() const
 	{
 		const Header* header = getHeader();
+
+		if(m_size < 16)
+		{
+			return false;
+		}
+
 		if(header->magic[0] != magic[0] ||
 		   header->magic[1] != magic[1] ||
 		   header->magic[2] != magic[2] ||
@@ -350,6 +358,7 @@ private:
 	}
 
 	T bufferPtr;
+	uint32_t m_size;
 };
 
 typedef BTableGeneric<unsigned char*> BTable;
