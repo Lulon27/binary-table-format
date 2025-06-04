@@ -83,11 +83,12 @@ public:
 	struct Header
 	{
 		uint8_t magic[4];
-		uint32_t numFields;
 		uint32_t numEntries;
+		uint16_t numFields;
 		uint16_t dataOffset;
 		uint8_t options;
-		uint8_t fieldNameLength; // If zero, field names are hashes, otherwise field names are byte arrays
+		uint8_t fieldNameLength; // If zero, field names are hashes, otherwise field names are byte arrays (not implemented)
+		uint8_t userData[2];
 	};
 
 	struct FieldListEntry
@@ -149,14 +150,14 @@ public:
 		
 	}
 
-	void init(const FieldData* fields, uint32_t numFields, uint32_t numEntries)
+	void init(const FieldData* fields, uint16_t numFields, uint32_t numEntries)
 	{
 		Header* header = getHeader();
 		header->magic[0] = magic[0];
 		header->magic[1] = magic[1];
 		header->magic[2] = magic[2];
 		header->magic[3] = magic[3];
-		header->numFields = cpu_to_be32(numFields);
+		header->numFields = cpu_to_be16(numFields);
 		header->numEntries = cpu_to_be32(numEntries);
 		header->options = 0;
 		header->fieldNameLength = 0; // String field names not implemented
@@ -183,7 +184,7 @@ public:
 
 	bool validate() const
 	{
-		Header* header = getHeader();
+		const Header* header = getHeader();
 		if(header->magic[0] != magic[0] ||
 		   header->magic[1] != magic[1] ||
 		   header->magic[2] != magic[2] ||
@@ -199,7 +200,7 @@ public:
 		return (Header*)bufferPtr;
 	}
 
-	Header* getHeader() const
+	const Header* getHeader() const
 	{
 		return (Header*)bufferPtr;
 	}
@@ -224,9 +225,21 @@ public:
 		return be32_to_cpu(getHeader()->numEntries);
 	}
 
-	uint32_t getNumFields() const
+	uint16_t getNumFields() const
 	{
-		return be32_to_cpu(getHeader()->numFields);
+		return be16_to_cpu(getHeader()->numFields);
+	}
+
+	void setUserData(uint8_t high, uint8_t low)
+	{
+		Header* h = getHeader();
+		h->userData[0] = high;
+		h->userData[1] = low;
+	}
+
+	const uint8_t* getUserData() const
+	{
+		return getHeader()->userData;
 	}
 
 	const FieldListEntry* getField(uint32_t fieldIndex) const

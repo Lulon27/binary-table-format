@@ -152,19 +152,19 @@ TEST(BTableTest, ConstructorFieldsEntries)
 
 	BTable(buffer).init(fields, 0, 0);
 	EXPECT_EQ(*(uint32_t*)(buffer + 4), 0);
-	EXPECT_EQ(*(uint32_t*)(buffer + 8), 0);
+	EXPECT_EQ(*(uint16_t*)(buffer + 8), 0);
 
 	BTable(buffer).init(fields, 1, 0);
-	EXPECT_EQ(*(uint32_t*)(buffer + 4), BTable::cpu_to_be32(1));
-	EXPECT_EQ(*(uint32_t*)(buffer + 8), 0);
+	EXPECT_EQ(*(uint32_t*)(buffer + 4), 0);
+	EXPECT_EQ(*(uint16_t*)(buffer + 8), BTable::cpu_to_be16(1));
 
 	BTable(buffer).init(fields, 0, 1);
-	EXPECT_EQ(*(uint32_t*)(buffer + 4), 0);
-	EXPECT_EQ(*(uint32_t*)(buffer + 8), BTable::cpu_to_be32(1));
+	EXPECT_EQ(*(uint32_t*)(buffer + 4), BTable::cpu_to_be32(1));
+	EXPECT_EQ(*(uint16_t*)(buffer + 8), 0);
 
 	BTable(buffer).init(fields, 1, 1);
 	EXPECT_EQ(*(uint32_t*)(buffer + 4), BTable::cpu_to_be32(1));
-	EXPECT_EQ(*(uint32_t*)(buffer + 8), BTable::cpu_to_be32(1));
+	EXPECT_EQ(*(uint16_t*)(buffer + 8), BTable::cpu_to_be16(1));
 }
 
 TEST(BTableTest, ConstructorHeaderDataOffset)
@@ -177,13 +177,13 @@ TEST(BTableTest, ConstructorHeaderDataOffset)
 	fields[2].name = "";
 
 	BTable(buffer).init(fields, 0, 0);
-	EXPECT_EQ(*(uint16_t*)(buffer + 12), BTable::cpu_to_be16(16));
+	EXPECT_EQ(*(uint16_t*)(buffer + 10), BTable::cpu_to_be16(16));
 
 	BTable(buffer).init(fields, 1, 0);
-	EXPECT_EQ(*(uint16_t*)(buffer + 12), BTable::cpu_to_be16(16 + BTable::field_entry_size));
+	EXPECT_EQ(*(uint16_t*)(buffer + 10), BTable::cpu_to_be16(16 + BTable::field_entry_size));
 
 	BTable(buffer).init(fields, 2, 0);
-	EXPECT_EQ(*(uint16_t*)(buffer + 12), BTable::cpu_to_be16(16 + BTable::field_entry_size * 2));
+	EXPECT_EQ(*(uint16_t*)(buffer + 10), BTable::cpu_to_be16(16 + BTable::field_entry_size * 2));
 }
 
 TEST(BTableTest, ConstructorFieldListArraySize)
@@ -469,10 +469,8 @@ TEST(BTableTest, EndiannessNumFields)
 	BTable t(buffer);
 	t.init(fields, 1, 0);
 	
-	EXPECT_EQ(0x00, *(uint8_t*)(buffer + 4));
-	EXPECT_EQ(0x00, *(uint8_t*)(buffer + 5));
-	EXPECT_EQ(0x00, *(uint8_t*)(buffer + 6));
-	EXPECT_EQ(0x01, *(uint8_t*)(buffer + 7));
+	EXPECT_EQ(0x00, *(uint8_t*)(buffer + 8));
+	EXPECT_EQ(0x01, *(uint8_t*)(buffer + 9));
 }
 
 TEST(BTableTest, EndiannessNumEntries)
@@ -487,8 +485,26 @@ TEST(BTableTest, EndiannessNumEntries)
 	BTable t(buffer);
 	t.init(fields, 1, 1);
 	
-	EXPECT_EQ(0x00, *(uint8_t*)(buffer + 8));
-	EXPECT_EQ(0x00, *(uint8_t*)(buffer + 9));
-	EXPECT_EQ(0x00, *(uint8_t*)(buffer + 10));
-	EXPECT_EQ(0x01, *(uint8_t*)(buffer + 11));
+	EXPECT_EQ(0x00, *(uint8_t*)(buffer + 4));
+	EXPECT_EQ(0x00, *(uint8_t*)(buffer + 5));
+	EXPECT_EQ(0x00, *(uint8_t*)(buffer + 6));
+	EXPECT_EQ(0x01, *(uint8_t*)(buffer + 7));
+}
+
+TEST(BTableTest, UserData)
+{
+	uint8_t buffer[128];
+	BTable::FieldData fields[1];
+
+	fields[0].name = "";
+	fields[0].arraySize = 1;
+	fields[0].dataType = BTable::DataType::INT8;
+
+	BTable t(buffer);
+	t.init(fields, 1, 0);
+	
+	t.setUserData(50, 100);
+	const uint8_t* userData = t.getUserData();
+	EXPECT_EQ(userData[0], 50);
+	EXPECT_EQ(userData[1], 100);
 }
