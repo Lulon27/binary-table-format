@@ -287,7 +287,11 @@ public:
 	{
 		// Add error handling of dest size < src size
 		void* startPtr = getEntry(field, entry);
-		memcpy_s(startPtr, field->arraySize, srcArray, n);
+		if(field->arraySize > n)
+		{
+			n = field->arraySize;
+		}
+		memcpy(startPtr, srcArray, n);
 	}
 
 	// sets every entry in a column. only for single values, not arrays
@@ -295,7 +299,12 @@ public:
 	{
 		// check if arraySize is != 1 and throw error
 		void* startPtr = (int8_t*)getEntries(field) + startEntry;
-		memcpy_s(startPtr, getNumEntries() - startEntry, srcArray, n);
+		uint32_t dstSize = getNumEntries() - startEntry;
+		if(dstSize > n)
+		{
+			n = dstSize;
+		}
+		memcpy(startPtr, srcArray, n);
 	}
 
 /* -------------------------- Type specific getters ------------------------- */
