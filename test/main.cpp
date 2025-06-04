@@ -137,6 +137,8 @@ TEST(BTableTest, ConstructorMagic)
 	uint8_t buffer[128];
 	BTable::FieldData fields[1];
 
+	fields[0].name = "";
+
 	BTable(buffer, 128).init(fields, 0, 0); 
 
 	EXPECT_EQ(buffer[0], 0x42);
@@ -149,6 +151,8 @@ TEST(BTableTest, ConstructorFieldsEntries)
 {
 	uint8_t buffer[128];
 	BTable::FieldData fields[1];
+
+	fields[0].name = "";
 
 	BTable(buffer, 128).init(fields, 0, 0);
 	EXPECT_EQ(*(uint32_t*)(buffer + 4), 0);
