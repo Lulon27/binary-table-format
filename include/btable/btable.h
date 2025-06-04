@@ -236,7 +236,6 @@ public:
 	uint32_t getFieldIndex(const char* fieldName)
 	{
 		uint16_t hash = cpu_to_be16(this->hash(fieldName));
-		const Header* header = getHeader();
 		const FieldListEntry* fieldList = getFieldList();
 		uint32_t numFields = getNumFields();
 		for (int i = 0; i < numFields; i++)
