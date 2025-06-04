@@ -76,7 +76,7 @@ public:
 	struct FieldData
 	{
 		const char* name;
-		uint16_t arraySize;
+		uint8_t arraySize;
 		enum DataType dataType;
 	};
 
