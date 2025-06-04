@@ -250,6 +250,21 @@ public:
 		return getHeader()->userData;
 	}
 
+	void setUserDataInt16(int16_t userData)
+	{
+		userData = cpu_to_be16(userData);
+		Header* h = getHeader();
+		h->userData[0] = (userData & 0xFF00) >> 8;
+		h->userData[1] = userData & 0x00FF;
+	}
+
+	int16_t getUserDataInt16() const
+	{
+		const Header* h = getHeader();
+		int16_t be = (h->userData[0] << 8) | h->userData[1];
+		return be16_to_cpu(be);
+	}
+
 	const FieldListEntry* getField(uint32_t fieldIndex) const
 	{
 		return &getFieldList()[fieldIndex];
