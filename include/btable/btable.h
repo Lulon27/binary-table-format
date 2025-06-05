@@ -131,6 +131,16 @@ public:
 		return ret;
 	}
 
+	static uint32_t getBytesPerEntry(const FieldData* field)
+	{
+		return getDatatypeSize(field->dataType) * (field->arraySize == 0 ? 1 : field->arraySize);
+	}
+
+	static uint32_t getBytesPerEntry(const FieldListEntry* fieldListEntry)
+	{
+		return getDatatypeSize((DataType)fieldListEntry->dataType) * (fieldListEntry->arraySize == 0 ? 1 : fieldListEntry->arraySize);
+	}
+
 	static uint32_t calculateBufferSize(const FieldData* fields, uint32_t numFields, uint32_t numEntries)
 	{
 		if(!fields)
@@ -140,7 +150,7 @@ public:
 		uint32_t bytesPerEntry = 0;
 		for (int i = 0; i < numFields; i++)
 		{
-			bytesPerEntry += getDatatypeSize(fields[i].dataType) * (fields[i].arraySize == 0 ? 1 : fields[i].arraySize);
+			bytesPerEntry += getBytesPerEntry(&fields[i]);
 		}
 		return bytesPerEntry * numEntries + 16 + 8 * numFields;
 	}
@@ -188,7 +198,7 @@ public:
 	{
 		const Header* header = getHeader();
 
-		if(m_size < 16)
+		if(m_size < field_list_offset)
 		{
 			return false;
 		}
@@ -200,6 +210,28 @@ public:
 		{
 			return false;
 		}
+
+		uint16_t numFields = getNumFields();
+		if(m_size < field_list_offset + numFields * field_entry_size)
+		{
+			return false;
+		}
+
+		uint32_t bytesPerEntry = 0;
+		const FieldListEntry* fieldList = getFieldList();
+		for (size_t i = 0; i < numFields; i++)
+		{
+			bytesPerEntry += getBytesPerEntry(&fieldList[i]);
+			if(!(be32_to_cpu(fieldList[i].offset) < m_size))
+			{
+				return false;
+			}
+		}
+		if(m_size < bytesPerEntry * getNumEntries() + field_list_offset + field_entry_size * numFields)
+		{
+			return false;
+		}
+
 		return true;
 	}
 
