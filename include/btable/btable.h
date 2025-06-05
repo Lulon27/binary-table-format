@@ -299,12 +299,21 @@ public:
 
 	const FieldListEntry* getField(uint32_t fieldIndex) const
 	{
+		if(fieldIndex == (uint32_t)-1 || fieldIndex >= getNumFields())
+		{
+			return nullptr;
+		}
 		return &getFieldList()[fieldIndex];
 	}
 
 	const FieldListEntry* getField(const char* fieldName) const
 	{
-		return &getFieldList()[getFieldIndex(fieldName)];
+		uint32_t fieldIndex = getFieldIndex(fieldName);
+		if(fieldIndex == (uint32_t)-1)
+		{
+			return nullptr;
+		}
+		return &getFieldList()[fieldIndex];
 	}
 
 	uint32_t getFieldIndex(const char* fieldName) const
