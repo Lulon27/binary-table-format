@@ -205,22 +205,22 @@ public:
 
 	Header* getHeader()
 	{
-		return (Header*)bufferPtr;
+		return reinterpret_cast<Header*>(bufferPtr);
 	}
 
 	const Header* getHeader() const
 	{
-		return (Header*)bufferPtr;
+		return reinterpret_cast<const Header*>(bufferPtr);
 	}
 
 	FieldListEntry* getFieldList()
 	{
-		return (FieldListEntry*)(bufferPtr + field_list_offset);
+		return reinterpret_cast<FieldListEntry*>(bufferPtr + field_list_offset);
 	}
 
 	const FieldListEntry* getFieldList() const
 	{
-		return (const FieldListEntry*)(bufferPtr + field_list_offset);
+		return reinterpret_cast<const FieldListEntry*>(bufferPtr + field_list_offset);
 	}
 
 	int8_t* getDataSection()
