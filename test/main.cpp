@@ -353,39 +353,39 @@ TEST(BTableTest, GetEntry)
 
 	BTable t(buffer, 128);
 	t.init(fields, 2, 1);
-	EXPECT_EQ(t.getEntry(t.getField((uint32_t)0), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2));
-	EXPECT_EQ(t.getEntry(t.getField((uint32_t)1), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2 + 1));
+	EXPECT_EQ(((const BTable)t).getValuePtr(t.getField((uint32_t)0), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2));
+	EXPECT_EQ(((const BTable)t).getValuePtr(t.getField((uint32_t)1), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2 + 1));
 
 	fields[0].dataType = BTable::DataType::INT16;
 
 	t.init(fields, 2, 1);
-	EXPECT_EQ(t.getEntry(t.getField((uint32_t)0), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2));
-	EXPECT_EQ(t.getEntry(t.getField((uint32_t)1), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2 + 2));
+	EXPECT_EQ(((const BTable)t).getValuePtr(t.getField((uint32_t)0), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2));
+	EXPECT_EQ(((const BTable)t).getValuePtr(t.getField((uint32_t)1), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2 + 2));
 
 	fields[0].arraySize = 2;
 
 	t.init(fields, 2, 1);
-	EXPECT_EQ(t.getEntry(t.getField((uint32_t)0), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2));
-	EXPECT_EQ(t.getEntry(t.getField((uint32_t)1), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2 + 4));
+	EXPECT_EQ(((const BTable)t).getValuePtr(t.getField((uint32_t)0), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2));
+	EXPECT_EQ(((const BTable)t).getValuePtr(t.getField((uint32_t)1), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2 + 4));
 
 	fields[0].dataType = BTable::DataType::INT8;
 	fields[0].arraySize = 1;
 
 	t.init(fields, 2, 2);
-	EXPECT_EQ(t.getEntry(t.getField((uint32_t)0), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2));
-	EXPECT_EQ(t.getEntry(t.getField((uint32_t)1), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2 + 2));
+	EXPECT_EQ(((const BTable)t).getValuePtr(t.getField((uint32_t)0), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2));
+	EXPECT_EQ(((const BTable)t).getValuePtr(t.getField((uint32_t)1), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2 + 2));
 
 	fields[0].dataType = BTable::DataType::INT16;
 
 	t.init(fields, 2, 2);
-	EXPECT_EQ(t.getEntry(t.getField((uint32_t)0), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2));
-	EXPECT_EQ(t.getEntry(t.getField((uint32_t)1), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2 + 4));
+	EXPECT_EQ(((const BTable)t).getValuePtr(t.getField((uint32_t)0), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2));
+	EXPECT_EQ(((const BTable)t).getValuePtr(t.getField((uint32_t)1), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2 + 4));
 
 	fields[0].arraySize = 2;
 
 	t.init(fields, 2, 2);
-	EXPECT_EQ(t.getEntry(t.getField((uint32_t)0), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2));
-	EXPECT_EQ(t.getEntry(t.getField((uint32_t)1), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2 + 8));
+	EXPECT_EQ(((const BTable)t).getValuePtr(t.getField((uint32_t)0), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2));
+	EXPECT_EQ(((const BTable)t).getValuePtr(t.getField((uint32_t)1), 0), (void*)(buffer + 16 + BTable::field_entry_size * 2 + 8));
 }
 
 TEST(BTableTest, GetEntries)

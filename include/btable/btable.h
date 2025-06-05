@@ -292,14 +292,9 @@ public:
 
 	// --- Generic getters ---
 
-	void* getEntry(const FieldListEntry* field, uint32_t entry)
+	const void* getValuePtr(const FieldListEntry* field, uint32_t entry) const
 	{
-		return getValuePtr(field, entry);
-	}
-
-	const void* getEntry(const FieldListEntry* field, uint32_t entry) const
-	{
-		return getValuePtr(field, entry);
+		return bufferPtr + be16_to_cpu(getHeader()->dataOffset) + be32_to_cpu(field->offset) + getDatatypeSize((DataType)field->dataType) * field->arraySize * entry;
 	}
 
 	void* getEntries(const FieldListEntry* field)
@@ -320,14 +315,14 @@ public:
 	void setValueInt8(const FieldListEntry* field, uint32_t entry, uint8_t value)
 	{
 		// check if arraySize is != 1 and throw error
-		*(uint8_t*)getEntry(field, entry) = value;
+		*(uint8_t*)getValuePtr(field, entry) = value;
 	}
 
 	// sets the array of an entry
 	void setArrayInt8(const FieldListEntry* field, uint32_t entry, int8_t* srcArray, uint32_t n)
 	{
 		// Add error handling of dest size < src size
-		void* startPtr = getEntry(field, entry);
+		void* startPtr = getValuePtr(field, entry);
 		if(field->arraySize > n)
 		{
 			n = field->arraySize;
@@ -352,22 +347,17 @@ public:
 
 	int8_t getValueInt8(const FieldListEntry* field, uint32_t entry) const
 	{
-		return *(uint8_t*)getEntry(field, entry);
+		return *(uint8_t*)getValuePtr(field, entry);
 	}
 
 	int8_t getValueInt8Array(const FieldListEntry* field, uint32_t entry, uint16_t index) const
 	{
 		// TODO: add error checking
-		return ((uint8_t*)getEntry(field, entry))[index];
+		return ((uint8_t*)getValuePtr(field, entry))[index];
 	}
 
 private:
 	void* getValuePtr(const FieldListEntry* field, uint32_t entry)
-	{
-		return bufferPtr + be16_to_cpu(getHeader()->dataOffset) + be32_to_cpu(field->offset) + getDatatypeSize((DataType)field->dataType) * field->arraySize * entry;
-	}
-
-	const void* getValuePtr(const FieldListEntry* field, uint32_t entry) const
 	{
 		return bufferPtr + be16_to_cpu(getHeader()->dataOffset) + be32_to_cpu(field->offset) + getDatatypeSize((DataType)field->dataType) * field->arraySize * entry;
 	}
